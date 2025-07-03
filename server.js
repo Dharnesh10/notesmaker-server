@@ -245,6 +245,50 @@ app.post('/api/topics/:topicId/notes', (req, res) => {
   );
 });
 
+// update a note
+app.put('/api/topics/:topicId/notes/:noteId', (req, res) => {
+  const userId = req.session.user?.id;
+  if (!userId) return res.sendStatus(401);
+
+  const { topicId, noteId } = req.params;
+  const { content } = req.body;
+  if (!content) return res.status(400).json({ error: 'Content is required' });
+
+  db.query(
+    'UPDATE notes SET content = ? WHERE id = ? AND topic_id = ?',
+    [content, noteId, topicId],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: 'Failed to update note' });
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ error: 'Note not found' });
+      }
+      res.json({ message: 'Note updated' });
+    }
+  );
+});
+
+// delete a note
+app.delete('/api/topics/:topicId/notes/:noteId', (req, res) => {
+  const userId = req.session.user?.id;
+  if (!userId) return res.sendStatus(401);
+
+  const { topicId, noteId } = req.params;
+
+  db.query(
+    'DELETE FROM notes WHERE id = ? AND topic_id = ?',
+    [noteId, topicId],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: 'Failed to delete note' });
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ error: 'Note not found' });
+      }
+      res.json({ message: 'Note deleted' });
+    }
+  );
+});
+
+
+
 // === TEST AUTH ===
 app.get('/api/checkAuth', (req, res) => {
   if (req.session.user) {
