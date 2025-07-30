@@ -7,6 +7,21 @@ const cors = require('cors');
 const app = express();
 const PORT = 5000;
 require('dotenv').config();
+const multer = require('multer');
+const path = require('path');
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve static images
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = Date.now() + '-' + file.originalname;
+    cb(null, uniqueName);
+  },
+});
+const upload = multer({ storage });
 
 // === MIDDLEWARE ===
 app.use(express.json());
@@ -19,7 +34,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    httpOnly: true,
+    httpOnly: true, 
     secure: false, // true if using HTTPS in prod
     maxAge: 3600000 // 1 hour
   }
@@ -227,23 +242,45 @@ app.get('/api/topics/:topicId/notes', (req, res) => {
 });
 
 // Add note to a topic
-app.post('/api/topics/:topicId/notes', (req, res) => {
+// app.post('/api/topics/:topicId/notes', (req, res) => {
+//   const userId = req.session.user?.id;
+//   if (!userId) return res.sendStatus(401);
+
+//   const { topicId } = req.params;
+//   const { content } = req.body;
+//   if (!content) return res.status(400).json({ error: 'Content is required' });
+
+//   db.query(
+//     'INSERT INTO notes (topic_id, content) VALUES (?, ?)',
+//     [topicId, content],
+//     (err, result) => {
+//       if (err) return res.sendStatus(500);
+//       res.json({ id: result.insertId, content });
+//     }
+//   );
+// });
+
+app.post('/api/topics/:topicId/notes', upload.single('image'), (req, res) => {
   const userId = req.session.user?.id;
   if (!userId) return res.sendStatus(401);
 
   const { topicId } = req.params;
   const { content } = req.body;
+  const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
+
   if (!content) return res.status(400).json({ error: 'Content is required' });
 
   db.query(
-    'INSERT INTO notes (topic_id, content) VALUES (?, ?)',
-    [topicId, content],
+    'INSERT INTO notes (topic_id, content, image_path) VALUES (?, ?, ?)',
+    [topicId, content, imagePath],
     (err, result) => {
       if (err) return res.sendStatus(500);
-      res.json({ id: result.insertId, content });
+      res.json({ id: result.insertId, content, image_path: imagePath });
     }
   );
 });
+
+
 
 // update a note
 app.put('/api/topics/:topicId/notes/:noteId', (req, res) => {
