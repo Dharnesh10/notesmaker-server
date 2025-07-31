@@ -324,6 +324,21 @@ app.delete('/api/topics/:topicId/notes/:noteId', (req, res) => {
   );
 });
 
+//Online topics get from all users 
+
+app.get('/api/subjects/topics/online', (req, res) => {
+  const userId = req.session?.user?.id;
+  if (!userId) return res.sendStatus(401);
+
+  db.query('SELECT * FROM topics', (err, results) => {
+    if (err) {
+      console.error(err);
+      return res.sendStatus(500);
+    }
+    res.json(results);
+  });
+});
+
 
 
 // === TEST AUTH ===
